@@ -1,0 +1,54 @@
+{% extends 'finance/base.html' %}
+{% block title %}Budgets - FinanceHub{% endblock %}
+{% block page_title %}Budgets — {{ current_month }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <a href="{% url 'add_budget' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Set New Budget
+    </a>
+</div>
+
+{% if budgets %}
+<div class="row g-4">
+    {% for b in budgets %}
+    <div class="col-md-6">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="fw-bold mb-1">{{ b.category.icon }} {{ b.category.name }}</h6>
+                    <small class="text-muted">{{ b.month }}/{{ b.year }}</small>
+                </div>
+                <form method="post" action="{% url 'delete_budget' b.pk %}" onsubmit="return confirm('Remove budget?')">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+            </div>
+            <div class="d-flex justify-content-between mt-3 mb-2 small">
+                <span class="text-muted">Spent: <strong>₹{{ b.spent_amount|floatformat:2 }}</strong></span>
+                <span class="text-muted">Limit: <strong>₹{{ b.limit_amount }}</strong></span>
+                <span class="{% if b.percentage_used >= 90 %}text-danger{% elif b.percentage_used >= 70 %}text-warning{% else %}text-success{% endif %}">
+                    {{ b.percentage_used }}%
+                </span>
+            </div>
+            <div class="progress" style="height:10px">
+                <div class="progress-bar {% if b.percentage_used >= 90 %}bg-danger{% elif b.percentage_used >= 70 %}bg-warning{% else %}bg-success{% endif %}"
+                     style="width: {{ b.percentage_used }}%"></div>
+            </div>
+            <div class="mt-2 small {% if b.remaining < 0 %}text-danger{% else %}text-success{% endif %}">
+                {% if b.remaining < 0 %}⚠️ Over budget by ₹{{ b.remaining|floatformat:2|slice:"1:" }}
+                {% else %}✅ ₹{{ b.remaining|floatformat:2 }} remaining
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card p-5 text-center text-muted">
+    <div style="font-size:3rem">📊</div>
+    <h5 class="mt-2">No budgets set for {{ current_month }}</h5>
+    <a href="{% url 'add_budget' %}" class="btn btn-primary mt-2">Set Your First Budget</a>
+</div>
+{% endif %}
+{% endblock %}

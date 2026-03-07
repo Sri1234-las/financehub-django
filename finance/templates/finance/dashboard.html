@@ -1,0 +1,205 @@
+{% extends 'finance/base.html' %}
+{% block title %}Dashboard - FinanceHub{% endblock %}
+{% block page_title %}Dashboard — {{ current_month }}{% endblock %}
+
+{% block content %}
+<!-- Stat Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+            <div class="stat-label"><i class="bi bi-wallet2 me-1"></i> Net Balance</div>
+            <div class="stat-value">₹{{ balance|floatformat:2 }}</div>
+            <small style="opacity:0.8;">This month's net</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #16a34a, #15803d);">
+            <div class="stat-label"><i class="bi bi-arrow-down-circle me-1"></i> Total Income</div>
+            <div class="stat-value">₹{{ income|floatformat:2 }}</div>
+            <small style="opacity:0.8;">This month</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="background: linear-gradient(135deg, #dc2626, #b91c1c);">
+            <div class="stat-label"><i class="bi bi-arrow-up-circle me-1"></i> Total Expense</div>
+            <div class="stat-value">₹{{ expense|floatformat:2 }}</div>
+            <small style="opacity:0.8;">This month</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Income vs Expense Chart -->
+    <div class="col-lg-8">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart me-2"></i>Income vs Expenses (Last 6 Months)</h6>
+            <canvas id="barChart" height="200"></canvas>
+        </div>
+    </div>
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-lightning me-2"></i>Quick Actions</h6>
+            <div class="d-grid gap-2">
+                <a href="{% url 'add_transaction' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Add Transaction
+                </a>
+                <a href="{% url 'add_budget' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-pie-chart me-2"></i>Set Budget
+                </a>
+                <a href="{% url 'add_goal' %}" class="btn btn-outline-success">
+                    <i class="bi bi-trophy me-2"></i>New Savings Goal
+                </a>
+                <a href="{% url 'add_bill' %}" class="btn btn-outline-warning">
+                    <i class="bi bi-receipt me-2"></i>Add Bill
+                </a>
+                <a href="{% url 'reports' %}" class="btn btn-outline-info">
+                    <i class="bi bi-bar-chart-line me-2"></i>View Reports
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Recent Transactions -->
+    <div class="col-lg-6">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>Recent Transactions</h6>
+                <a href="{% url 'transaction_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            {% if recent_transactions %}
+            {% for t in recent_transactions %}
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                    <div class="fw-semibold">{{ t.title }}</div>
+                    <small class="text-muted">{{ t.date|date:"d M Y" }} · {{ t.category.name|default:"No Category" }}</small>
+                </div>
+                <span class="badge {% if t.transaction_type == 'income' %}badge-income{% else %}badge-expense{% endif %} px-3 py-2 rounded-pill">
+                    {% if t.transaction_type == 'income' %}+{% else %}-{% endif %}₹{{ t.amount }}
+                </span>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted text-center py-3">No transactions yet. <a href="{% url 'add_transaction' %}">Add one!</a></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Budget Status -->
+    <div class="col-lg-6">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-pie-chart me-2"></i>Budget Status</h6>
+                <a href="{% url 'budget_list' %}" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            {% if budgets %}
+            {% for b in budgets %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>{{ b.category.icon }} {{ b.category.name }}</span>
+                    <span class="{% if b.percentage_used >= 90 %}text-danger{% elif b.percentage_used >= 70 %}text-warning{% else %}text-success{% endif %}">
+                        ₹{{ b.spent_amount|floatformat:0 }} / ₹{{ b.limit_amount }}
+                    </span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar {% if b.percentage_used >= 90 %}bg-danger{% elif b.percentage_used >= 70 %}bg-warning{% else %}bg-success{% endif %}"
+                         style="width: {{ b.percentage_used }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted text-center py-3">No budgets set. <a href="{% url 'add_budget' %}">Set one!</a></p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Savings Goals -->
+    <div class="col-lg-6">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-trophy me-2"></i>Savings Goals</h6>
+                <a href="{% url 'goal_list' %}" class="btn btn-sm btn-outline-success">View All</a>
+            </div>
+            {% if goals %}
+            {% for g in goals %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>{{ g.icon }} {{ g.name }}</span>
+                    <span>{{ g.percentage }}%</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-success" style="width: {{ g.percentage }}%"></div>
+                </div>
+                <small class="text-muted">₹{{ g.saved_amount }} of ₹{{ g.target_amount }}</small>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted text-center py-3">No savings goals yet. <a href="{% url 'add_goal' %}">Add one!</a></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming Bills -->
+    <div class="col-lg-6">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-receipt me-2"></i>Upcoming Bills</h6>
+                <a href="{% url 'bill_list' %}" class="btn btn-sm btn-outline-warning">View All</a>
+            </div>
+            {% if upcoming_bills %}
+            {% for bill in upcoming_bills %}
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                    <div class="fw-semibold">{{ bill.icon }} {{ bill.name }}</div>
+                    <small class="{% if bill.is_overdue %}text-danger{% else %}text-muted{% endif %}">
+                        {% if bill.is_overdue %}⚠️ Overdue — {% endif %}Due: {{ bill.due_date|date:"d M Y" }}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <div class="fw-semibold">₹{{ bill.amount }}</div>
+                    <a href="{% url 'mark_bill_paid' bill.pk %}" class="badge bg-success text-decoration-none">Mark Paid</a>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-muted text-center py-3">No upcoming bills. 🎉</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ctx = document.getElementById('barChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [
+            {
+                label: 'Income',
+                data: {{ chart_income|safe }},
+                backgroundColor: 'rgba(22, 163, 74, 0.8)',
+                borderRadius: 6,
+            },
+            {
+                label: 'Expense',
+                data: {{ chart_expense|safe }},
+                backgroundColor: 'rgba(220, 38, 38, 0.8)',
+                borderRadius: 6,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+{% endblock %}

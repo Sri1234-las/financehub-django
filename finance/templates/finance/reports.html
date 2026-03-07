@@ -1,0 +1,170 @@
+{% extends 'finance/base.html' %}
+{% block title %}Reports - FinanceHub{% endblock %}
+{% block page_title %}Reports — {{ month_name }}{% endblock %}
+
+{% block content %}
+<!-- Month/Year Filter -->
+<div class="card p-3 mb-4">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold">Month</label>
+            <select name="month" class="form-select">
+                {% for num, name in months %}
+                <option value="{{ num }}" {% if num == month %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold">Year</label>
+            <select name="year" class="form-select">
+                {% for y in years %}
+                <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary w-100">View Report</button>
+        </div>
+    </form>
+</div>
+
+<!-- Summary -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card p-3 text-center border-success">
+            <div class="text-muted small">Total Income</div>
+            <div class="fw-bold fs-4 text-success">₹{{ total_income|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center border-danger">
+            <div class="text-muted small">Total Expense</div>
+            <div class="fw-bold fs-4 text-danger">₹{{ total_expense|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center border-primary">
+            <div class="text-muted small">Net Balance</div>
+            <div class="fw-bold fs-4 {% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                ₹{{ balance|floatformat:2 }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Pie Chart -->
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart me-2"></i>Expense by Category</h6>
+            {% if cat_data %}
+            <canvas id="pieChart" height="250"></canvas>
+            {% else %}
+            <p class="text-muted text-center py-4">No expense data for this period.</p>
+            {% endif %}
+        </div>
+    </div>
+    <!-- Daily Spending -->
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-calendar3 me-2"></i>Daily Spending</h6>
+            <canvas id="lineChart" height="250"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Category Breakdown Table -->
+{% if expense_by_cat %}
+<div class="card mb-4">
+    <div class="card-body p-0">
+        <div class="p-3 border-bottom"><h6 class="fw-bold mb-0">Category Breakdown</h6></div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr><th>Category</th><th class="text-end">Amount</th><th class="text-end">% of Expense</th></tr>
+                </thead>
+                <tbody>
+                    {% for cat in expense_by_cat %}
+                    <tr>
+                        <td>{{ cat.category__icon|default:"📦" }} {{ cat.category__name|default:"Uncategorized" }}</td>
+                        <td class="text-end text-danger fw-semibold">₹{{ cat.total|floatformat:2 }}</td>
+                        <td class="text-end text-muted">
+                            {% if total_expense %}
+                            {% widthratio cat.total total_expense 100 %}%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- All Transactions Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="p-3 border-bottom"><h6 class="fw-bold mb-0">All Transactions — {{ month_name }}</h6></div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr><th>Title</th><th>Category</th><th>Date</th><th class="text-end">Amount</th></tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td>{{ t.title }}</td>
+                        <td>{{ t.category.icon|default:"" }} {{ t.category.name|default:"—" }}</td>
+                        <td>{{ t.date|date:"d M" }}</td>
+                        <td class="text-end fw-semibold {% if t.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                            {% if t.transaction_type == 'income' %}+{% else %}-{% endif %}₹{{ t.amount }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">No transactions for this period.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Pie chart
+{% if cat_data %}
+const pieCtx = document.getElementById('pieChart').getContext('2d');
+new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ cat_labels|safe }},
+        datasets: [{ data: {{ cat_data|safe }}, backgroundColor: [
+            '#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#64748b','#a78bfa'
+        ], borderWidth: 2 }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'right' } } }
+});
+{% endif %}
+
+// Line chart (daily spending)
+const dayData = {{ day_data|safe }};
+const days = Array.from({length: 31}, (_, i) => i + 1);
+const lineCtx = document.getElementById('lineChart').getContext('2d');
+new Chart(lineCtx, {
+    type: 'line',
+    data: {
+        labels: days,
+        datasets: [{
+            label: 'Daily Expense',
+            data: days.map(d => dayData[String(d)] || 0),
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239,68,68,0.1)',
+            fill: true, tension: 0.4, pointRadius: 3,
+        }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}

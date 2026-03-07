@@ -1,0 +1,119 @@
+{% extends 'finance/base.html' %}
+{% block title %}Transactions - FinanceHub{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <div class="text-muted small">Total Income</div>
+            <div class="fw-bold fs-5 text-success">₹{{ total_income|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <div class="text-muted small">Total Expense</div>
+            <div class="fw-bold fs-5 text-danger">₹{{ total_expense|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <div class="text-muted small">Balance</div>
+            <div class="fw-bold fs-5 {% if total_income >= total_expense %}text-success{% else %}text-danger{% endif %}">
+                ₹{{ total_income|add:total_expense|floatformat:2 }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card p-3 mb-4">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Type</label>
+            <select name="type" class="form-select form-select-sm">
+                <option value="">All</option>
+                <option value="income" {% if request.GET.type == 'income' %}selected{% endif %}>Income</option>
+                <option value="expense" {% if request.GET.type == 'expense' %}selected{% endif %}>Expense</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Month</label>
+            <select name="month" class="form-select form-select-sm">
+                <option value="">All Months</option>
+                {% for i in "123456789101112"|make_list %}
+                <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold">Year</label>
+            <input type="number" name="year" class="form-control form-control-sm" value="{{ request.GET.year }}" placeholder="e.g. 2025">
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-sm btn-primary w-100">Filter</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+            <h6 class="mb-0 fw-bold">All Transactions</h6>
+            <a href="{% url 'add_transaction' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>Add Transaction
+            </a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">{{ t.title }}</div>
+                            {% if t.note %}<small class="text-muted">{{ t.note|truncatechars:40 }}</small>{% endif %}
+                        </td>
+                        <td>{{ t.category.icon|default:"" }} {{ t.category.name|default:"—" }}</td>
+                        <td>{{ t.date|date:"d M Y" }}</td>
+                        <td>
+                            <span class="badge {% if t.transaction_type == 'income' %}badge-income{% else %}badge-expense{% endif %} rounded-pill px-3">
+                                {{ t.transaction_type|capfirst }}
+                            </span>
+                        </td>
+                        <td class="text-end fw-bold {% if t.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                            {% if t.transaction_type == 'income' %}+{% else %}-{% endif %}₹{{ t.amount }}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'edit_transaction' t.pk %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="post" action="{% url 'delete_transaction' t.pk %}" class="d-inline"
+                                  onsubmit="return confirm('Delete this transaction?')">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            No transactions found. <a href="{% url 'add_transaction' %}">Add your first one!</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

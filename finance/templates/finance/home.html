@@ -1,0 +1,23 @@
+{% extends 'finance/base.html' %}
+{% block auth_content %}
+<div style="min-height:100vh; background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%); display:flex; align-items:center; justify-content:center;">
+    <div class="text-center text-white px-4">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">💰</div>
+        <h1 class="fw-bold mb-3" style="font-size: 3rem;">FinanceHub</h1>
+        <p class="lead mb-4" style="opacity: 0.85; max-width: 500px; margin: 0 auto 2rem;">
+            Your personal finance manager — track income & expenses, plan budgets,
+            achieve savings goals, and never miss a bill.
+        </p>
+        <div class="d-flex gap-3 justify-content-center">
+            <a href="{% url 'register' %}" class="btn btn-light btn-lg px-5 fw-semibold">Get Started Free</a>
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-5">Login</a>
+        </div>
+        <div class="mt-5 d-flex gap-4 justify-content-center flex-wrap" style="opacity: 0.8;">
+            <span>📊 Income & Expense Tracking</span>
+            <span>🎯 Budget Planning</span>
+            <span>💸 Savings Goals</span>
+            <span>📋 Bill Reminders</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

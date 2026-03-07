@@ -1,0 +1,54 @@
+{% extends 'finance/base.html' %}
+{% block title %}Savings Goals - FinanceHub{% endblock %}
+{% block page_title %}Savings Goals{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <a href="{% url 'add_goal' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Add New Goal
+    </a>
+</div>
+
+{% if goals %}
+<div class="row g-4">
+    {% for g in goals %}
+    <div class="col-md-6">
+        <div class="card p-4 {% if g.is_completed %}border-success{% endif %}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="fw-bold mb-0">{{ g.icon }} {{ g.name }}</h6>
+                    {% if g.deadline %}<small class="text-muted">Deadline: {{ g.deadline|date:"d M Y" }}</small>{% endif %}
+                </div>
+                <div class="d-flex gap-1">
+                    {% if g.is_completed %}<span class="badge bg-success">Completed ✅</span>{% endif %}
+                    <a href="{% url 'edit_goal' g.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                    <form method="post" action="{% url 'delete_goal' g.pk %}" onsubmit="return confirm('Delete goal?')">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between mt-3 mb-2 small">
+                <span>Saved: <strong>₹{{ g.saved_amount }}</strong></span>
+                <span>Target: <strong>₹{{ g.target_amount }}</strong></span>
+                <span class="{% if g.is_completed %}text-success{% else %}text-primary{% endif %}">{{ g.percentage }}%</span>
+            </div>
+            <div class="progress" style="height:12px">
+                <div class="progress-bar {% if g.is_completed %}bg-success{% else %}bg-primary{% endif %}"
+                     style="width: {{ g.percentage }}%"></div>
+            </div>
+            {% if not g.is_completed %}
+            <small class="text-muted mt-2 d-block">₹{{ g.remaining|floatformat:2 }} more to go!</small>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card p-5 text-center text-muted">
+    <div style="font-size:3rem">🎯</div>
+    <h5 class="mt-2">No savings goals yet</h5>
+    <a href="{% url 'add_goal' %}" class="btn btn-success mt-2">Create Your First Goal</a>
+</div>
+{% endif %}
+{% endblock %}

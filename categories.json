@@ -1,0 +1,1 @@
+[{"model": "finance.category", "pk": 1, "fields": {"user": 1, "name": "Health", "category_type": "income", "icon": 
